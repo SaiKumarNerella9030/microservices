@@ -20,7 +20,7 @@ pipeline {
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    docker.withRegistry("https://index.docker.io/v1/", "dockerhub-creds") {
+                    docker.withRegistry("https://index.docker.io/v1/", "Dockercreds") {
                         sh """
                         # Auth service
                         docker build -t ${DOCKER_HUB_ID}/auth:${IMAGE_TAG} ./auth
