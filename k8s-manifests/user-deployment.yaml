@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: user
-        image: your-dockerhub/user:latest
+        image: saikumarnerella90/user:latest
         ports:
         - containerPort: 5001
 ---
