@@ -34,7 +34,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     script {
-                        def services = ["auth", "user", "payment", "order", "frontend"]
+                        def services = ["auth", "user"]
                         services.each { service ->
                             sh """
                                 echo "Updating deployment for ${service}"
