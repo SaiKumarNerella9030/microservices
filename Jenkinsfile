@@ -31,21 +31,22 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-            script {
-                def services = ["auth", "user"]
-                services.each { service ->
-                    sh """
-                        sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
-                        kubectl --kubeconfig=$KUBECONFIG apply -f k8s-manifests/${service}-deployment.yaml
-                        kubectl --kubeconfig=$KUBECONFIG rollout status deployment/${service}-deployment
-                    """
-                  }
-               }
+    stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    script {
+                        def services = ["auth", "user", "payment", "order", "frontend"]
+                        services.each { service ->
+                            sh """
+                                echo "Updating deployment for ${service}"
+                                sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
+                                kubectl --kubeconfig=$KUBECONFIG apply -f k8s-manifests/${service}-deployment.yaml
+                                kubectl --kubeconfig=$KUBECONFIG rollout status deployment/${service}-deployment
+                            """
+                        }
+                    }
+                }
             }
-         }
-      }
+        }
     }
-}
 }
