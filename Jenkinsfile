@@ -32,16 +32,17 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG')]) {
-                    script {
-                        def services = ["auth", "user"]
-                        services.each { service ->
-                            sh """
-                                echo "Updating deployment for ${service}"
-                                sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
-                                kubectl --kubeconfig=$KUBECONFIG apply -f k8s-manifests/${service}-deployment.yaml
-                                kubectl --kubeconfig=$KUBECONFIG rollout status deployment/${service}-deployment
-                            """
+                withCredentials([string(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
+    script {
+        writeFile file: 'kubeconfig', text: "${KUBECONFIG_CONTENT}"
+        def services = ["auth", "user"]
+        services.each { service ->
+            sh """
+                echo "Deploying ${service}"
+                sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
+                kubectl --kubeconfig=kubeconfig apply -f k8s-manifests/${service}-deployment.yaml
+                kubectl --kubeconfig=kubeconfig rollout status deployment/${service}-deployment
+            """
                         }
                     }
                 }
