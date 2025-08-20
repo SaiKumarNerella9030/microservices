@@ -2,47 +2,55 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB = "your-dockerhub"        // change this
-        KUBECONFIG = credentials('kubeconfig-cred')
+        DOCKER_HUB_ID = "saikumarnerella90"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/your-org/microservices-project.git'
+                script {
+                    // Repo already checked out by Jenkins SCM
+                    GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    IMAGE_TAG = "${GIT_COMMIT_SHORT}"
+                    echo "Using image tag: ${IMAGE_TAG}"
+                }
             }
         }
 
-        stage('Build & Push Images') {
+        stage('Build & Push Docker Images') {
             steps {
                 script {
-                    def services = ["auth", "user"]
-                    services.each { svc ->
+                    docker.withRegistry("https://index.docker.io/v1/", "dockerhub-creds") {
                         sh """
-                        docker build -t $DOCKER_HUB/${svc}:$BUILD_NUMBER ./services/${svc}
-                        docker push $DOCKER_HUB/${svc}:$BUILD_NUMBER
+                        # Auth service
+                        docker build -t ${DOCKER_HUB_ID}/auth:${IMAGE_TAG} ./auth
+                        docker push ${DOCKER_HUB_ID}/auth:${IMAGE_TAG}
+                        docker tag ${DOCKER_HUB_ID}/auth:${IMAGE_TAG} ${DOCKER_HUB_ID}/auth:latest
+                        docker push ${DOCKER_HUB_ID}/auth:latest
+
+                        # User service
+                        docker build -t ${DOCKER_HUB_ID}/user:${IMAGE_TAG} ./user
+                        docker push ${DOCKER_HUB_ID}/user:${IMAGE_TAG}
+                        docker tag ${DOCKER_HUB_ID}/user:${IMAGE_TAG} ${DOCKER_HUB_ID}/user:latest
+                        docker push ${DOCKER_HUB_ID}/user:latest
                         """
                     }
                 }
             }
         }
 
-        stage('Deploy with kubectl') {
+        stage('Deploy to EKS') {
             steps {
-                sh """
-                kubectl apply -f k8s-manifests/auth-deployment.yaml
-                kubectl apply -f k8s-manifests/user-deployment.yaml
-                """
-            }
-        }
-
-        stage('Verify') {
-            steps {
-                sh "kubectl get pods -o wide"
-                sh "kubectl get svc -o wide"
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                        export KUBECONFIG=$KUBECONFIG_FILE
+                        kubectl set image deployment/auth-deployment auth=saikumarnerella90/auth:${IMAGE_TAG} --record
+                        kubectl set image deployment/user-deployment user=saikumarnerella90/user:${IMAGE_TAG} --record
+                        kubectl rollout status deployment/auth-deployment
+                        kubectl rollout status deployment/user-deployment
+                    '''
+                }
             }
         }
     }
 }
-
