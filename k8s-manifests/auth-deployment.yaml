@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: auth
-        image: your-dockerhub/auth:latest   # Jenkins will push here
+        image: saikumarnerella90/auth:latest   # Jenkins will push here
         ports:
         - containerPort: 5000
 ---
