@@ -34,9 +34,11 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
     script {
-        // Restore newlines properly
-        writeFile file: 'kubeconfig', text: "${KUBECONFIG_CONTENT.replaceAll('\\\\n', '\n')}"
+        // Write kubeconfig with restored newlines
+        writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT.replaceAll('\\\\n', '\n')
         
+        sh "cat kubeconfig | head -20"  // Debug: show first 20 lines (remove after testing)
+
         def services = ["auth", "user"]
         services.each { service ->
             sh """
