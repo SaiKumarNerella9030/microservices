@@ -2,53 +2,45 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_ID = "saikumarnerella90"
+        REGISTRY = "saikumarnerella90"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"   // Version-wise tag
+        KUBECONFIG_PATH = "${WORKSPACE}/kubeconfig"
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                script {
-                    // Repo already checked out by Jenkins SCM
-                    GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    IMAGE_TAG = "${GIT_COMMIT_SHORT}"
-                    echo "Using image tag: ${IMAGE_TAG}"
-                }
+                git credentialsId: 'Gitcreds', url: 'https://github.com/SaiKumarNerella9030/microservices.git', branch: 'main'
             }
         }
 
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    docker.withRegistry("https://index.docker.io/v1/", "Dockercreds") {
-                        sh """
-                        # Auth service
-                        docker build -t ${DOCKER_HUB_ID}/auth:${IMAGE_TAG} ./auth
-                        docker push ${DOCKER_HUB_ID}/auth:${IMAGE_TAG}
-                        docker tag ${DOCKER_HUB_ID}/auth:${IMAGE_TAG} ${DOCKER_HUB_ID}/auth:latest
-                        docker push ${DOCKER_HUB_ID}/auth:latest
-
-                        # User service
-                        docker build -t ${DOCKER_HUB_ID}/user:${IMAGE_TAG} ./user
-                        docker push ${DOCKER_HUB_ID}/user:${IMAGE_TAG}
-                        docker tag ${DOCKER_HUB_ID}/user:${IMAGE_TAG} ${DOCKER_HUB_ID}/user:latest
-                        docker push ${DOCKER_HUB_ID}/user:latest
-                        """
+                    def services = ["auth", "user"]
+                    docker.withRegistry('https://index.docker.io/v1/', 'Dockercreds') {
+                        services.each { service ->
+                            sh """
+                                docker build -t ${REGISTRY}/${service}:${IMAGE_TAG} ./services/${service}
+                                docker push ${REGISTRY}/${service}:${IMAGE_TAG}
+                            """
+                        }
                     }
                 }
             }
         }
 
-        stage('Deploy to EKS') {
+        stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
-                    sh '''
-                        export KUBECONFIG=$KUBECONFIG_FILE
-                        kubectl set image deployment/auth-deployment auth=saikumarnerella90/auth:${IMAGE_TAG} --record
-                        kubectl set image deployment/user-deployment user=saikumarnerella90/user:${IMAGE_TAG} --record
-                        kubectl rollout status deployment/auth-deployment
-                        kubectl rollout status deployment/user-deployment
-                    '''
+                script {
+                    def services = ["auth", "user"]
+                    services.each { service ->
+                        sh """
+                            # Update image in deployment YAML before applying
+                            sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
+                            kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s-manifests/${service}-deployment.yaml
+                        """
+                    }
                 }
             }
         }
