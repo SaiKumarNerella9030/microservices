@@ -34,7 +34,9 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
     script {
-        writeFile file: 'kubeconfig', text: "${KUBECONFIG_CONTENT}"
+        // Restore newlines properly
+        writeFile file: 'kubeconfig', text: "${KUBECONFIG_CONTENT.replaceAll('\\\\n', '\n')}"
+        
         def services = ["auth", "user"]
         services.each { service ->
             sh """
