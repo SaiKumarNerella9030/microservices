@@ -1,8 +1,8 @@
-# 🚀 Microservices CI/CD Pipeline (Jenkins + Docker + Kubernetes)
+# Microservices CI/CD Pipeline (Jenkins + Docker + Kubernetes)
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 microservices/
@@ -11,18 +11,11 @@ microservices/
 │   │   ├── Dockerfile
 │   │   └── app.py
 │   ├── user/
-│   │   ├── Dockerfile
-│   │   └── app.py
-│   ├── payment/
-│   ├── order/
-│   └── frontend/
-│
+│       ├── Dockerfile
+│       └── app.py
 ├── k8s-manifests/
 │   ├── auth-deployment.yaml
 │   ├── user-deployment.yaml
-│   ├── payment-deployment.yaml
-│   ├── order-deployment.yaml
-│   └── frontend-deployment.yaml
 │
 └── Jenkinsfile
 
@@ -32,7 +25,7 @@ Each service has its own **Dockerfile** and **Kubernetes deployment YAML**.
 
 ---
 
-## 🔧 Prerequisites
+## Prerequisites
 
 - **Jenkins** with required plugins:
   - *Pipeline*
@@ -45,7 +38,7 @@ Each service has its own **Dockerfile** and **Kubernetes deployment YAML**.
 
 ---
 
-## 🔑 Jenkins Credentials Setup
+## Jenkins Credentials Setup
 
 Inside Jenkins → *Manage Jenkins → Credentials*:
 
@@ -67,7 +60,7 @@ Inside Jenkins → *Manage Jenkins → Credentials*:
 
 ---
 
-## 🔄 Pipeline Flow
+## Pipeline Flow
 
 1. **Checkout Code** → Fetches repo from GitHub
 2. **Build & Push Docker Images** → Builds images per service, pushes to DockerHub with `BUILD_NUMBER` tag
@@ -93,7 +86,7 @@ kubectl rollout status deployment/auth-deployment
 
 ---
 
-## 📌 Notes
+## Notes
 
 * `kubeconfig` **must be stored as Secret File** in Jenkins.
 * If using EKS, generate kubeconfig with:
