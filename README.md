@@ -1,19 +1,10 @@
-Perfect 👍 Let’s write a **README.md** tailored to *your* project that we built step by step in this chat (Jenkins → DockerHub → Kubernetes for 5 microservices).
-
----
-
-```markdown
 # 🚀 Microservices CI/CD Pipeline (Jenkins + Docker + Kubernetes)
-
-This project demonstrates a **real-world CI/CD setup** for multiple microservices using **Jenkins**, **DockerHub**, and **Kubernetes**.  
-The pipeline automates **building, pushing, and deploying** containerized services to a Kubernetes cluster.
 
 ---
 
 ## 📂 Project Structure
 
 ```
-
 microservices/
 ├── services/
 │   ├── auth/
@@ -35,7 +26,7 @@ microservices/
 │
 └── Jenkinsfile
 
-````
+```
 
 Each service has its own **Dockerfile** and **Kubernetes deployment YAML**.
 
@@ -73,60 +64,6 @@ Inside Jenkins → *Manage Jenkins → Credentials*:
 
 ---
 
-## 📝 Jenkinsfile (CI/CD Pipeline)
-
-```groovy
-pipeline {
-    agent any
-
-    environment {
-        REGISTRY = "saikumarnerella90"      // DockerHub username
-        IMAGE_TAG = "${env.BUILD_NUMBER}"   // Jenkins build number as version
-    }
-
-    stages {
-        stage('Checkout Code') {
-            steps {
-                git credentialsId: 'Gitcreds', url: 'https://github.com/SaiKumarNerella9030/microservices.git', branch: 'main'
-            }
-        }
-
-        stage('Build & Push Docker Images') {
-            steps {
-                script {
-                    def services = ["auth", "user", "payment", "order", "frontend"]
-                    docker.withRegistry('https://index.docker.io/v1/', 'Dockercreds') {
-                        services.each { service ->
-                            sh """
-                                docker build -t ${REGISTRY}/${service}:${IMAGE_TAG} ./services/${service}
-                                docker push ${REGISTRY}/${service}:${IMAGE_TAG}
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    script {
-                        def services = ["auth", "user", "payment", "order", "frontend"]
-                        services.each { service ->
-                            sh """
-                                echo "Deploying ${service}"
-                                sed -i 's|image: ${REGISTRY}/${service}:.*|image: ${REGISTRY}/${service}:${IMAGE_TAG}|' k8s-manifests/${service}-deployment.yaml
-                                kubectl --kubeconfig=$KUBECONFIG apply -f k8s-manifests/${service}-deployment.yaml
-                                kubectl --kubeconfig=$KUBECONFIG rollout status deployment/${service}-deployment
-                            """
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-````
 
 ---
 
@@ -167,16 +104,3 @@ kubectl rollout status deployment/auth-deployment
 * Works with both **Minikube** (local) and **EKS** (cloud).
 
 ---
-
-## 🔮 Next Enhancements
-
-* Use **Helm charts** instead of raw YAMLs
-* Add **Prometheus & Grafana** monitoring
-* Enable **GitOps (ArgoCD)** for declarative deployments
-
-```
-
----
-
-Would you like me to also create a **diagram (CI/CD flow + architecture)** for this README so it’s interview/project-ready?
-```
